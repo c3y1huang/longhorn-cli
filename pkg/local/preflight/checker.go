@@ -177,6 +177,8 @@ func (local *Checker) Init() error {
 
 // Run executes the preflight checks.
 func (local *Checker) Run() error {
+	local.checkCoreDNS()
+
 	switch local.osRelease {
 	case fmt.Sprint(consts.OperatingSystemContainerOptimizedOS):
 		logrus.Infof("Checking preflight for %v", consts.OperatingSystemContainerOptimizedOS)
@@ -465,4 +467,37 @@ func (local *Checker) checkNFSv4Support() error {
 
 	local.collection.Log.Error = append(local.collection.Log.Error, "NFS4 is not supported")
 	return nil
+}
+
+// checkCoreDNS checks if the CoreDNS deployment in the Kubernetes cluster
+// has multiple replicas and logs warnings if it does not.
+//
+// It retrieves the CoreDNS deployment from the kubeClient and checks the
+// number of replicas specified in the deployment spec. If the number of
+// replicas is less than 2, it logs a warning indicating that CoreDNS is
+// not set to run in multiple replicas. Additionally, it checks the number
+// of ready replicas in the deployment status and logs a warning if there
+// are fewer than 2 ready replicas.
+//
+// https://github.com/longhorn/longhorn/issues/9752
+func (local *Checker) checkCoreDNS() {
+	logrus.Info("Checking if CoreDNS has multiple replicas")
+
+	deployment, err := commonkube.GetDeployment(local.kubeClient, metav1.NamespaceSystem, consts.AppNameCoreDNS)
+	if err != nil {
+		local.collection.Log.Error = append(local.collection.Log.Error, fmt.Sprintf("failed to check CoreDNS: %v", err))
+		return
+	}
+
+	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas < 2 {
+		local.collection.Log.Warn = append(local.collection.Log.Warn, "CoreDNS is set with fewer than 2 replicas; consider increasing replica count for high availability")
+		return
+	}
+
+	if deployment.Status.ReadyReplicas < 2 {
+		local.collection.Log.Warn = append(local.collection.Log.Warn, "CoreDNS has fewer than 2 ready replicas; some replicas may not be running or ready")
+		return
+	}
+
+	local.collection.Log.Info = append(local.collection.Log.Info, fmt.Sprintf("CoreDNS is set with %d replicas and %d ready replicas", *deployment.Spec.Replicas, deployment.Status.ReadyReplicas))
 }
