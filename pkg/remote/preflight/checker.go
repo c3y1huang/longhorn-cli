@@ -165,7 +165,7 @@ func (remote *Checker) newClusterRole() *rbacv1.ClusterRole {
 		Rules: []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{"apps"},
-				Resources: []string{"daemonsets"},
+				Resources: []string{"daemonsets", "deployments"},
 				Verbs:     []string{"get"},
 			},
 		},
