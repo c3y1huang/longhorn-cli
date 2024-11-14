@@ -4,6 +4,8 @@ go 1.23
 
 toolchain go1.23.3
 
+replace github.com/longhorn/go-common-libs => github.com/c3y1huang/go-common-libs v0.0.0-20241114031240-e1117130cd3b
+
 require (
 	github.com/longhorn/go-common-libs v0.0.0-20241109101504-614ae31d2212
 	github.com/longhorn/longhorn-manager v1.7.2
