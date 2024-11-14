@@ -53,6 +53,16 @@ type Checker struct {
 func (local *Checker) Init() error {
 	local.collection.Log = &types.LogCollection{}
 
+	config, err := commonkube.GetInClusterConfig()
+	if err != nil {
+		return errors.Wrap(err, "failed to get client config")
+	}
+
+	local.kubeClient, err = kubeclient.NewForConfig(config)
+	if err != nil {
+		return errors.Wrap(err, "failed to get Kubernetes clientset")
+	}
+
 	osRelease, err := utils.GetOSRelease()
 	if err != nil {
 		return errors.Wrap(err, "failed to get OS release")
@@ -61,16 +71,6 @@ func (local *Checker) Init() error {
 	local.logger = logrus.WithField("os", local.osRelease)
 
 	if local.osRelease == fmt.Sprint(consts.OperatingSystemContainerOptimizedOS) {
-		config, err := commonkube.GetInClusterConfig()
-		if err != nil {
-			return errors.Wrap(err, "failed to get client config")
-		}
-
-		local.kubeClient, err = kubeclient.NewForConfig(config)
-		if err != nil {
-			return errors.Wrap(err, "failed to get Kubernetes clientset")
-		}
-
 		return nil
 	}
 
